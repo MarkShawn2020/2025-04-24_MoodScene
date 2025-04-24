@@ -242,10 +242,19 @@ class Dashboard:
         def handle_request_video_frame():
             # 仅发送视频帧数据
             if hasattr(self, 'last_video_frame') and self.last_video_frame is not None:
-                logger.debug(f"发送视频帧给客户端: {request.sid}")
+                frame_length = len(self.last_video_frame) if isinstance(self.last_video_frame, str) else 'unknown type'
+                logger.info(f"发送视频帧给客户端: {request.sid}, 帧大小: {frame_length}")
+                # 检查获取到的视频帧数据类型
+                logger.info(f"视频帧数据类型: {type(self.last_video_frame)}")
+                # 检查数据前后部分
+                if isinstance(self.last_video_frame, str) and len(self.last_video_frame) > 20:
+                    logger.info(f"视频帧数据开头: {self.last_video_frame[:20]}")
+                    logger.info(f"视频帧数据结尾: {self.last_video_frame[-20:]}")
+                    
+                # 发送视频帧数据给前端
                 self.socketio.emit('video_frame', {'data': self.last_video_frame})
             else:
-                logger.debug(f"无视频帧可用，通知客户端: {request.sid}")
+                logger.warning(f"无视频帧可用，通知客户端: {request.sid}")
                 self.socketio.emit('no_server_video')
     
     def _emit_update(self):
