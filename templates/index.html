@@ -152,7 +152,9 @@
                     </div>
                     <div class="card-body text-center">
                         <div id="video-container">
-                            <div class="placeholder">
+                            <video id="video-stream" autoplay playsinline style="width: 100%; max-height: 300px; display: none;"></video>
+                            <canvas id="video-canvas" style="width: 100%; max-height: 300px; display: none;"></canvas>
+                            <div id="video-placeholder" class="placeholder">
                                 <i class="bi bi-camera-video-off"></i>
                                 <p>视频流暂不可用</p>
                             </div>

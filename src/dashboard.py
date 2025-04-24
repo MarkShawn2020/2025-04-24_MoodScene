@@ -68,6 +68,7 @@ class Dashboard:
         self.emotion_history = []
         self.environment_history = []
         self.productivity_history = []
+        self.last_video_frame = None  # 存储最新的视频帧
         
         # 最后更新时间
         self.last_update = time.time()
@@ -146,6 +147,8 @@ class Dashboard:
         Args:
             data: 新的数据字典
         """
+        # data = json.loads(data)
+        logger.info(f'[update data] {data}')
         self.latest_data = data
         self.last_update = time.time()
         
@@ -156,9 +159,9 @@ class Dashboard:
         if 'emotion' in data:
             emotion_data = {
                 'timestamp': timestamp,
-                'emotion': data.get('emotion', {}).get('emotion', 'neutral'),
-                'valence': data.get('emotion', {}).get('valence', 0.0),
-                'arousal': data.get('emotion', {}).get('arousal', 0.0),
+                'emotion': data['emotion'] if isinstance(data['emotion'], str) else data.get('emotion', {}).get('emotion', 'neutral'),
+                'valence': data.get('valence', 0.0) if isinstance(data.get('emotion'), str) else data.get('emotion', {}).get('valence', 0.0),
+                'arousal': data.get('arousal', 0.0) if isinstance(data.get('emotion'), str) else data.get('emotion', {}).get('arousal', 0.0),
                 'mood_score': data.get('mood_score', 0.0)
             }
             self.emotion_history.append(emotion_data)
@@ -189,6 +192,10 @@ class Dashboard:
             self.productivity_history.append(prod_data)
             if len(self.productivity_history) > 100:
                 self.productivity_history.pop(0)
+        
+        # 如果有视频帧数据，保存它
+        if 'video' in data and 'frame_data' in data['video']:
+            self.last_video_frame = data['video']['frame_data']
         
         # 通过Socket.IO发送更新
         self._emit_update()
@@ -230,6 +237,16 @@ class Dashboard:
         @self.socketio.on('request_update')
         def handle_request_update():
             self._emit_update()
+            
+        @self.socketio.on('request_video_frame')
+        def handle_request_video_frame():
+            # 仅发送视频帧数据
+            if hasattr(self, 'last_video_frame') and self.last_video_frame is not None:
+                logger.debug(f"发送视频帧给客户端: {request.sid}")
+                self.socketio.emit('video_frame', {'data': self.last_video_frame})
+            else:
+                logger.debug(f"无视频帧可用，通知客户端: {request.sid}")
+                self.socketio.emit('no_server_video')
     
     def _emit_update(self):
         """发送数据更新到客户端"""
@@ -246,6 +263,13 @@ class Dashboard:
             
             if self.productivity_history:
                 self.socketio.emit('productivity_history_update', self.productivity_history[-20:])
+                
+            # 检查视频数据是否可用，如果有则发送
+            if 'video' in self.latest_data and hasattr(self, 'last_video_frame') and self.last_video_frame is not None:
+                self.socketio.emit('video_frame', {'data': self.last_video_frame})
+            else:
+                # 通知前端没有服务器视频流，可以尝试使用本地摄像头
+                self.socketio.emit('no_server_video')
         except Exception as e:
             logger.error(f"发送更新时出错: {str(e)}")
     

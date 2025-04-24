@@ -12,6 +12,7 @@ import logging
 import numpy as np
 import threading
 import mediapipe as mp
+import base64
 from queue import Queue
 
 logger = logging.getLogger("MoodSense.VideoAnalyzer")
@@ -51,10 +52,18 @@ class VideoAnalyzer:
         self.brightness = 0
         self.motion_level = 0
         self.last_frame = None
+        self.encoded_frame = None  # Base64编码的视频帧
         self.face_detected = False
         self.face_location = None
         self.pose_landmarks = None
         self.hands_landmarks = None
+        
+        # 视频帧处理选项
+        self.encode_frames = True  # 是否编码视频帧
+        self.frame_quality = 80   # JPEG质量(1-100)
+        self.resize_frame = True   # 是否调整视频帧大小
+        self.frame_width = 640    # 调整后的宽度
+        self.frame_height = 480   # 调整后的高度
         
         logger.info("视频分析器初始化完成")
     
@@ -125,7 +134,7 @@ class VideoAnalyzer:
     
     def get_analysis_results(self):
         """获取分析结果"""
-        return {
+        results = {
             'brightness': self.brightness,
             'motion_level': self.motion_level,
             'face_detected': self.face_detected,
@@ -133,6 +142,12 @@ class VideoAnalyzer:
             'pose_landmarks': self.pose_landmarks,
             'hands_landmarks': self.hands_landmarks
         }
+        
+        # 如果有编码后的帧，添加到结果中
+        if self.encoded_frame is not None:
+            results['frame_data'] = self.encoded_frame
+            
+        return results
     
     def _capture_loop(self):
         """视频捕获循环"""
@@ -220,6 +235,10 @@ class VideoAnalyzer:
                 # 分析手势
                 self.hands_landmarks = self._detect_hands(frame)
                 
+                # 编码视频帧
+                if self.encode_frames:
+                    self._encode_frame(frame.copy())
+                
                 # 如果结果队列已满，移除最旧的结果
                 if self.result_queue.full():
                     try:
@@ -306,6 +325,85 @@ class VideoAnalyzer:
                 }
         
         return landmarks
+    
+    def _encode_frame(self, frame):
+        """将视频帧编码为Base64格式"""
+        try:
+            # 如果需要调整大小
+            if self.resize_frame:
+                frame = cv2.resize(frame, (self.frame_width, self.frame_height))
+            
+            # 在视频帧上绘制分析结果
+            self._draw_analysis_results(frame)
+            
+            # 编码为JPEG
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self.frame_quality]
+            _, buffer = cv2.imencode('.jpg', frame, encode_param)
+            
+            # 转换为Base64
+            jpg_as_text = base64.b64encode(buffer).decode('utf-8')
+            
+            # 保存编码后的帧
+            self.encoded_frame = jpg_as_text
+        except Exception as e:
+            logger.error(f"视频帧编码错误: {str(e)}")
+    
+    def _draw_analysis_results(self, frame):
+        """在视频帧上绘制分析结果"""
+        try:
+            # 绘制亮度和运动水平
+            brightness_text = f"亮度: {self.brightness:.2f}"
+            motion_text = f"运动: {self.motion_level:.2f}"
+            
+            cv2.putText(frame, brightness_text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            cv2.putText(frame, motion_text, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            
+            # 如果检测到人脸，绘制人脸框
+            if self.face_detected and self.face_location:
+                x = self.face_location['xmin']
+                y = self.face_location['ymin']
+                w = self.face_location['width']
+                h = self.face_location['height']
+                
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                cv2.putText(frame, "人脸", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            
+            # 绘制MediaPipe姿态关键点
+            if self.pose_landmarks:
+                self._draw_pose_landmarks(frame)
+            
+            # 添加时间戳
+            time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            cv2.putText(frame, time_str, (frame.shape[1] - 180, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            
+        except Exception as e:
+            logger.error(f"绘制分析结果错误: {str(e)}")
+    
+    def _draw_pose_landmarks(self, frame):
+        """绘制姿态关键点"""
+        if not self.pose_landmarks:
+            return
+            
+        # 转换landmark字典格式为MediaPipe格式以便绘制
+        # 这是一个简化版本，仅绘制部分关键点
+        try:
+            # 提取几个主要关键点（如果存在）
+            landmarks = {}
+            for key, value in self.pose_landmarks.items():
+                idx = int(key.split('_')[1])
+                landmarks[idx] = value
+            
+            # 绘制关键点
+            for idx, landmark in landmarks.items():
+                # 确保关键点在帧范围内
+                x = int(landmark['x'] * frame.shape[1])
+                y = int(landmark['y'] * frame.shape[0])
+                
+                # 只绘制可见性较高的点
+                if landmark.get('visibility', 0) > 0.5:
+                    cv2.circle(frame, (x, y), 5, (0, 255, 255), -1)
+        except Exception as e:
+            logger.error(f"绘制姿态关键点错误: {str(e)}")
     
     def _detect_hands(self, frame):
         """检测手势"""

@@ -181,6 +181,13 @@ class DataIntegrator:
             'focus_level': focus_level
         })
         
+        # 如果有视频帧数据，直接传递到整合数据的顶层
+        if 'frame_data' in self.video_data:
+            integrated_data['video']['frame_data'] = self.video_data['frame_data']
+            # 打印视频帧信息（仅打印长度，不打印实际内容）
+            frame_length = len(self.video_data['frame_data']) if isinstance(self.video_data['frame_data'], str) else 0
+            logger.info(f"已整合视频帧数据，长度: {frame_length} 字节")
+        
         return integrated_data
     
     def _calculate_scores(self):

@@ -86,10 +86,82 @@ class MoodSense:
             thread.start()
             self.threads.append(thread)
         
+        # 创建数据集成线程
+        self.data_sync_thread = threading.Thread(target=self._data_sync_loop, daemon=True)
+        self.data_sync_thread.start()
+        self.threads.append(self.data_sync_thread)
+        
         # 启动仪表盘（主线程）
         self.dashboard.start()
         
         logger.info("MoodSense系统已启动")
+    
+    def _data_sync_loop(self):
+        """数据同步循环，将各个模块的数据同步到数据整合器和仪表盘"""
+        logger.info("数据同步循环已启动")
+        
+        while self.running:
+            try:
+                # 获取视频分析结果
+                video_data = self.video_analyzer.get_analysis_results()
+                self.data_integrator.update_video_data(video_data)
+                
+                # 获取音频分析结果
+                audio_data = self.audio_analyzer.get_analysis_results()
+                self.data_integrator.update_audio_data(audio_data)
+                
+                # 获取环境分析结果
+                # 先更新环境数据
+                self.environment_analyzer.update_data('brightness', video_data['brightness'])
+                self.environment_analyzer.update_data('noise_level', audio_data.get('noise_level', 0.0))
+                self.environment_analyzer.update_data('motion_level', video_data['motion_level'])
+                
+                # 获取环境分析结果
+                environment_data = self.environment_analyzer.get_analysis_results()
+                self.data_integrator.update_environment_data(environment_data)
+                
+                # 获取情绪状态
+                # 先更新情绪数据
+                if video_data.get('face_detected', False):
+                    # 如果检测到人脸，更新情绪状态
+                    self.emotion_detector.update_face_emotion(self.video_analyzer.last_frame)
+                
+                self.emotion_detector.update_voice_emotion(audio_data)
+                
+                # 获取输入状态
+                input_data = self.input_monitor.get_analysis_results()
+                self.data_integrator.update_input_data(input_data)
+                
+                # 更新情绪状态
+                self.emotion_detector.update_behavior_emotion(
+                    video_data['motion_level'],
+                    input_data.get('typing_speed', 0.0),
+                    input_data.get('typing_errors', 0.0),
+                    input_data.get('focus_level', 0.5)
+                )
+                
+                # 获取情绪分析结果
+                emotion_data = self.emotion_detector.get_analysis_results()
+                self.data_integrator.update_emotion_data(emotion_data)
+                
+                # 获取整合数据
+                integrated_data = self.data_integrator.get_analysis_results()
+                
+                # 更新仪表盘数据
+                self.dashboard.update_data(integrated_data)
+                
+                # 在控制台打印视频帧状态
+                has_frame = 'frame_data' in video_data
+                logger.debug(f"调试: 视频帧存在状态: {has_frame}")
+                
+                # 等待一小段时间
+                time.sleep(0.1)  # 100ms更新一次
+                
+            except Exception as e:
+                logger.error(f"数据同步循环出错: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                time.sleep(1.0)  # 出错时等待1秒再继续
     
     def stop(self):
         """停止MoodSense系统"""

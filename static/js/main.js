@@ -8,6 +8,8 @@ let lastUpdate = new Date();
 
 // 当文档加载完成时初始化
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('文档已加载，初始化应用...');
+    
     // 初始化Socket.IO连接
     initSocketConnection();
     
@@ -17,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // 更新当前时间
     updateCurrentTime();
     setInterval(updateCurrentTime, 1000);
+    
+    // 注意: 视频初始化已移至socket连接后
 });
 
 // 初始化Socket.IO连接
@@ -32,6 +36,9 @@ function initSocketConnection() {
         
         // 请求初始数据
         socket.emit('request_update');
+        
+        // 在连接成功后初始化视频流
+        initVideoStream();
     });
     
     // 断开连接事件
@@ -315,6 +322,153 @@ function updateVideoDisplay(videoData) {
     // 更新运动水平
     const motionLevel = videoData.motion_level || 0;
     document.getElementById('motion-level').textContent = motionLevel.toFixed(2);
+    
+    // 如果有视频帧数据，更新视频显示
+    if (videoData.frame_data) {
+        updateVideoFrame(videoData.frame_data);
+    }
+}
+
+// 初始化视频流
+function initVideoStream() {
+    console.log('初始化视频流');
+    const videoPlaceholder = document.getElementById('video-placeholder');
+    const videoElement = document.getElementById('video-stream');
+    const videoCanvas = document.getElementById('video-canvas');
+    
+    if (!videoPlaceholder || !videoElement || !videoCanvas) {
+        console.error('视频元素不存在！', {
+            placeholder: videoPlaceholder,
+            video: videoElement,
+            canvas: videoCanvas
+        });
+        return;
+    }
+    
+    console.log('注册视频帧事件监听器');
+    // 通过Socket.IO接收视频帧
+    socket.on('video_frame', function(frameData) {
+        console.log('收到视频帧数据', frameData ? '有效' : '无效');
+        if (frameData && frameData.data) {
+            // 隐藏占位符，显示视频
+            videoPlaceholder.style.display = 'none';
+            videoCanvas.style.display = 'block';
+            
+            // 更新视频帧
+            updateVideoFrame(frameData.data);
+        }
+    });
+    
+    // 主动请求视频帧
+    socket.emit('request_video_frame');
+    
+    // 定时请求视频帧更新
+    setInterval(function() {
+        socket.emit('request_video_frame');
+    }, 1000); // 每秒请求一次
+    
+    // 显示静态图片代替摄像头
+    function displayStaticImage() {
+        console.log('显示静态演示图片');
+        const staticImgUrl = 'https://placehold.co/600x400/4287f5/ffffff?text=MoodSense+演示画面';
+        
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.getElementById('video-canvas');
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                
+                // 添加演示文字
+                ctx.font = '20px Arial';
+                ctx.fillStyle = 'white';
+                ctx.textAlign = 'center';
+                ctx.fillText('命令行启动时系统可提供真实视频画面', canvas.width/2, canvas.height/2 + 30);
+                
+                // 显示canvas并隐藏占位符
+                canvas.style.display = 'block';
+                videoPlaceholder.style.display = 'none';
+            }
+        };
+        img.src = staticImgUrl;
+    }
+    
+    // 尝试从本地摄像头获取视频
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        // 仅在未收到服务器视频流时尝试
+        socket.on('no_server_video', function() {
+            console.log('尝试使用本地摄像头');
+            
+            // 首先尝试使用本地摄像头
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                } 
+            })
+            .then(function(stream) {
+                videoElement.srcObject = stream;
+                videoElement.style.display = 'block';
+                videoPlaceholder.style.display = 'none';
+                console.log('成功获取摄像头数据流');
+            })
+            .catch(function(error) {
+                console.error('无法访问摄像头:', error);
+                // 如果无法访问摄像头，显示静态演示图片
+                displayStaticImage();
+            });
+        });
+    } else {
+        // 如果浏览器不支持摄像头API，直接显示静态演示图片
+        console.warn('浏览器不支持摄像头API');
+        socket.on('no_server_video', displayStaticImage);
+    }
+}
+
+// 更新视频帧
+function updateVideoFrame(frameData) {
+    const videoCanvas = document.getElementById('video-canvas');
+    if (!videoCanvas) {
+        console.error('无法找到canvas元素');
+        return;
+    }
+    
+    const ctx = videoCanvas.getContext('2d');
+    if (!ctx) {
+        console.error('无法获取2D上下文');
+        return;
+    }
+    
+    console.log('开始处理视频帧数据');
+    // 创建图像数据
+    const img = new Image();
+    
+    // 设置图像源前添加错误处理
+    img.onerror = function(e) {
+        console.error('图像加载错误:', e);
+    };
+    
+    img.onload = function() {
+        console.log('图像已加载，尺寸:', img.width, 'x', img.height);
+        // 设置canvas尺寸与图像一致
+        videoCanvas.width = img.width;
+        videoCanvas.height = img.height;
+        
+        // 绘制图像
+        ctx.drawImage(img, 0, 0, videoCanvas.width, videoCanvas.height);
+        
+        // 显示canvas
+        videoCanvas.style.display = 'block';
+        // 隐藏占位符
+        document.getElementById('video-placeholder').style.display = 'none';
+    };
+    
+    // 设置图像源
+    const imgSrc = 'data:image/jpeg;base64,' + frameData;
+    console.log('设置图像源:', imgSrc.substring(0, 50) + '...');
+    img.src = imgSrc;
 }
 
 // 更新情绪图表
