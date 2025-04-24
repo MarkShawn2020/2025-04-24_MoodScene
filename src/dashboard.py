@@ -148,7 +148,7 @@ class Dashboard:
             data: 新的数据字典
         """
         # data = json.loads(data)
-        logger.info(f'[update data] {data}')
+        logger.debug(f'[update data] {data}')
         self.latest_data = data
         self.last_update = time.time()
         
@@ -245,18 +245,42 @@ class Dashboard:
             
         @self.socketio.on('request_video_frame')
         def handle_request_video_frame():
-            # 仅发送视频帧数据
-            if hasattr(self, 'last_video_frame') and self.last_video_frame is not None:
-                logger.debug(f"发送视频帧给客户端: {request.sid}")
-                self.socketio.emit('video_frame', {'data': self.last_video_frame})
-            else:
-                logger.debug(f"无视频帧可用，通知客户端: {request.sid}")
+            # 直接从VideoAnalyzer获取最新的视频帧
+            try:
+                # 获取最新的视频分析数据
+                from main import mood_sense
+                if not hasattr(mood_sense, 'video_analyzer'):
+                    logger.error("视频分析器不可用")
+                    self.socketio.emit('no_server_video')
+                    return
+                    
+                video_data = mood_sense.video_analyzer.get_analysis_results()
+                
+                # 检查是否包含帧数据
+                if video_data and 'frame_data' in video_data:
+                    logger.info(f"成功获取视频帧数据，长度: {len(video_data['frame_data'])}")
+                    self.socketio.emit('video_frame', {'data': video_data['frame_data']})
+                    # 更新本地缓存
+                    self.last_video_frame = video_data['frame_data']
+                else:
+                    logger.info("视频分析器未返回帧数据")
+                    # 尝试使用缓存的帧数据
+                    if hasattr(self, 'last_video_frame') and self.last_video_frame:
+                        logger.info("使用缓存的视频帧")
+                        self.socketio.emit('video_frame', {'data': self.last_video_frame})
+                    else:
+                        logger.info("无视频帧可用")
+                        self.socketio.emit('no_server_video')
+            except Exception as e:
+                logger.error(f"处理视频帧请求时出错: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
                 self.socketio.emit('no_server_video')
     
     def _emit_update(self):
         """发送数据更新到客户端"""
         try:
-            # 发送最新数据
+            # 发送最新数据 (不包含视频帧，视频帧单独请求)
             self.socketio.emit('data_update', self.latest_data)
             
             # 发送历史数据
@@ -268,13 +292,6 @@ class Dashboard:
             
             if self.productivity_history:
                 self.socketio.emit('productivity_history_update', self.productivity_history[-20:])
-                
-            # 检查视频数据是否可用，如果有则发送
-            if 'video' in self.latest_data and hasattr(self, 'last_video_frame') and self.last_video_frame is not None:
-                self.socketio.emit('video_frame', {'data': self.last_video_frame})
-            else:
-                # 通知前端没有服务器视频流，可以尝试使用本地摄像头
-                self.socketio.emit('no_server_video')
         except Exception as e:
             logger.error(f"发送更新时出错: {str(e)}")
     

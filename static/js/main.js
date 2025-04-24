@@ -277,22 +277,43 @@ function updateEmotionDisplay(emotionData) {
 
 // 更新环境显示
 function updateEnvironmentDisplay(data) {
-    // 提取环境数据
-    const brightness = data.brightness || 0;
-    const noiseLevel = data.noise_level || 0;
-    const environmentType = data.environment?.environment_type || '未知';
-    const environmentScore = data.environment_score || 0;
-    
-    // 更新显示
-    document.getElementById('brightness-value').textContent = brightness.toFixed(2);
-    document.getElementById('noise-value').textContent = noiseLevel.toFixed(2);
-    document.getElementById('environment-type').textContent = environmentType;
-    document.getElementById('environment-score').textContent = environmentScore.toFixed(2);
-    
-    // 更新进度条
-    document.getElementById('brightness-bar').style.width = (brightness * 100) + '%';
-    document.getElementById('noise-bar').style.width = (noiseLevel * 100) + '%';
-    document.getElementById('environment-score-bar').style.width = (environmentScore * 100) + '%';
+    try {
+        // 提取环境数据
+        const brightness = data.brightness || 0;
+        const noiseLevel = data.noise_level || 0;
+        const environmentType = data.environment?.environment_type || '未知';
+        const environmentScore = data.environment_score || 0;
+        
+        // 安全更新显示 - 使用待更新元素存在性检查
+        const updateElement = (id, value, isText = true) => {
+            const element = document.getElementById(id);
+            if (element) {
+                if (isText) {
+                    element.textContent = value;
+                } else {
+                    element.style.width = value;
+                }
+            }
+        };
+        
+        // 更新文本内容
+        updateElement('brightness-value', brightness.toFixed(2));
+        updateElement('noise-value', noiseLevel.toFixed(2));
+        updateElement('environment-type', environmentType);
+        
+        // 更新环境评分 - 检查两个可能的元素ID
+        updateElement('environment-score', environmentScore.toFixed(2));
+        updateElement('environment-score', Math.round(environmentScore * 100) + '/100');
+        
+        // 更新进度条
+        updateElement('brightness-bar', (brightness * 100) + '%', false);
+        updateElement('noise-bar', (noiseLevel * 100) + '%', false);
+        
+        // HTML中没有environment-score-bar元素，跳过这个更新
+        // environment-score-bar保留以便将来可能添加
+    } catch (error) {
+        console.error('更新环境显示时出错:', error);
+    }
 }
 
 // 更新输入显示
@@ -354,12 +375,12 @@ function initVideoStream() {
     });
     
     console.log('注册视频帧事件监听器');
-    // 通过Socket.IO接收视频帧 - 简化版本
+    // 通过Socket.IO接收视频帧 - 增强版本
     socket.on('video_frame', function(frameData) {
         console.log('✅ 收到视频帧数据', frameData ? '有效' : '无效');
         
         if (frameData && frameData.data) {
-            console.log('✅ 视频帧数据长度:', frameData.data.length);
+            console.log(`✅ 视频帧数据长度: ${frameData.data.length} [时间: ${new Date().toISOString()}]`);
             
             // 测试直接显示图像 - 将base64数据设置为背景图片
             document.getElementById('video-container').style.backgroundImage = `url(data:image/jpeg;base64,${frameData.data})`;
@@ -367,10 +388,14 @@ function initVideoStream() {
             document.getElementById('video-container').style.backgroundPosition = 'center';
             document.getElementById('video-container').style.backgroundSize = 'contain';
             
-            // 隐藏占位符，先不使用canvas
+            // 隐藏占位符
             if (videoPlaceholder) videoPlaceholder.style.display = 'none';
             
-            // 同时也尝试使用原来的Canvas方式
+            // 更新人脸检测状态
+            document.getElementById('face-detection-status').textContent = '摄像头工作中';
+            document.getElementById('face-detection-status').style.color = '#28a745';
+            
+            // 同时也尝试使用Canvas方式显示
             try {
                 updateVideoFrame(frameData.data);
             } catch (error) {
@@ -378,16 +403,51 @@ function initVideoStream() {
             }
         } else {
             console.warn('视频帧数据不可用或格式错误');
+            // 显示错误状态
+            if (videoPlaceholder) videoPlaceholder.style.display = 'flex';
+            document.getElementById('face-detection-status').textContent = '无数据';
+            document.getElementById('face-detection-status').style.color = '#dc3545';
         }
     });
     
     // 主动请求视频帧
     socket.emit('request_video_frame');
     
-    // 定时请求视频帧更新
-    setInterval(function() {
+    // 初始化请求视频帧
+    let videoFrameTimer = null;
+    
+    // 定时请求视频帧更新函数
+    function startRequestingVideoFrames(interval = 500) {
+        // 清除现有定时器
+        if (videoFrameTimer) {
+            clearInterval(videoFrameTimer);
+        }
+        
+        console.log(`开始请求视频帧, 间隔: ${interval}ms`);
+        
+        // 立即请求第一帧
         socket.emit('request_video_frame');
-    }, 500); 
+        
+        // 设置新的定时器
+        videoFrameTimer = setInterval(function() {
+            socket.emit('request_video_frame');
+        }, interval);
+        
+        return videoFrameTimer;
+    }
+    
+    // 接收服务器视频不可用的通知
+    socket.on('no_server_video', function() {
+        console.warn('服务器视频不可用');
+        // 显示占位符
+        if (videoPlaceholder) videoPlaceholder.style.display = 'flex';
+        // 更新状态显示
+        document.getElementById('face-detection-status').textContent = '摄像头不可用';
+        document.getElementById('face-detection-status').style.color = '#dc3545';
+    });
+    
+    // 启动视频帧请求
+    startRequestingVideoFrames(500);
 }
 
 // 更新视频帧
