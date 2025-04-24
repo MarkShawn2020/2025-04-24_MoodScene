@@ -13,9 +13,9 @@
     <script src="https://cdn.jsdelivr.net/npm/socket.io@4.5.4/client-dist/socket.io.min.js"></script>
 </head>
 <body>
-    <div class="container-fluid">
+    <div class="container-fluid p-2">
         <!-- 顶部导航 -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-1">
             <div class="container-fluid">
                 <a class="navbar-brand" href="/">
                     <i class="bi bi-emoji-smile me-2"></i>MoodSense
@@ -31,38 +31,36 @@
         </nav>
 
         <!-- 主要内容 -->
-        <div class="row mt-3">
-            <!-- 左侧面板：状态概览 -->
+        <div class="row g-2 mt-2">
+            <!-- 左侧面板：输入数据源 -->
             <div class="col-md-4">
-                <div class="card mb-3">
-                    <div class="card-header bg-primary text-white">
-                        <i class="bi bi-person-circle me-2"></i>用户状态
+                <div class="card mb-2">
+                    <div class="card-header py-1 bg-dark text-white">
+                        <i class="bi bi-camera-video me-1"></i>视频输入
                     </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-6 text-center">
-                                <div id="emotion-display" class="emotion-display">
-                                    <i class="bi bi-emoji-neutral emotion-icon"></i>
+                    <div class="card-body p-1 text-center">
+                        <div id="video-container">
+                            <video id="video-stream" autoplay playsinline style="width: 100%; max-height: 220px; display: none;"></video>
+                            <canvas id="video-canvas" style="width: 100%; max-height: 220px; display: none;"></canvas>
+                            <div id="video-placeholder" class="placeholder" style="height: 180px;">
+                                <i class="bi bi-camera-video-off"></i>
+                                <p>视频流暂不可用</p>
+                            </div>
+                        </div>
+                        <div class="row g-1 mt-1">
+                            <div class="col-6">
+                                <div class="card h-100">
+                                    <div class="card-header py-1 bg-secondary text-white"><small>人脸检测</small></div>
+                                    <div class="card-body p-1">
+                                        <small>状态: <span id="face-detection-status">未检测</span></small>
+                                    </div>
                                 </div>
-                                <h5 id="current-emotion">中性</h5>
                             </div>
                             <div class="col-6">
-                                <div class="mb-2">
-                                    <label>情绪价值: <span id="valence-value">0.0</span></label>
-                                    <div class="progress">
-                                        <div id="valence-bar" class="progress-bar" role="progressbar" style="width: 50%"></div>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <label>唤醒度: <span id="arousal-value">0.0</span></label>
-                                    <div class="progress">
-                                        <div id="arousal-bar" class="progress-bar bg-warning" role="progressbar" style="width: 50%"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label>情绪强度: <span id="intensity-value">0.0</span></label>
-                                    <div class="progress">
-                                        <div id="intensity-bar" class="progress-bar bg-danger" role="progressbar" style="width: 50%"></div>
+                                <div class="card h-100">
+                                    <div class="card-header py-1 bg-secondary text-white"><small>运动检测</small></div>
+                                    <div class="card-body p-1">
+                                        <small>运动: <span id="motion-level">0.0</span></small>
                                     </div>
                                 </div>
                             </div>
@@ -70,109 +68,277 @@
                     </div>
                 </div>
                 
-                <div class="card mb-3">
-                    <div class="card-header bg-success text-white">
-                        <i class="bi bi-speedometer2 me-2"></i>环境状态
+                <div class="card mb-2">
+                    <div class="card-header py-1 bg-info text-white">
+                        <i class="bi bi-keyboard me-1"></i>键盘输入
                     </div>
-                    <div class="card-body">
-                        <div class="mb-2">
-                            <label>亮度水平: <span id="brightness-value">0.0</span></label>
-                            <div class="progress">
-                                <div id="brightness-bar" class="progress-bar bg-warning" role="progressbar" style="width: 50%"></div>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <label>噪音水平: <span id="noise-value">0.0</span></label>
-                            <div class="progress">
-                                <div id="noise-bar" class="progress-bar bg-danger" role="progressbar" style="width: 50%"></div>
-                            </div>
-                        </div>
-                        <div class="mb-2">
-                            <label>环境类型: <span id="environment-type">未知</span></label>
-                        </div>
-                        <div>
-                            <label>环境评分: <span id="environment-score">0.0</span></label>
-                            <div class="progress">
-                                <div id="environment-score-bar" class="progress-bar bg-info" role="progressbar" style="width: 50%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card mb-3">
-                    <div class="card-header bg-info text-white">
-                        <i class="bi bi-keyboard me-2"></i>输入状态
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-2">
-                            <label>打字速度: <span id="typing-speed">0</span> 字符/分钟</label>
-                            <div class="progress">
+                    <div class="card-body py-2">
+                        <div class="mb-1">
+                            <small>打字速度: <span id="typing-speed">0</span> 字符/分钟</small>
+                            <div class="progress" style="height: 6px;">
                                 <div id="typing-speed-bar" class="progress-bar bg-success" role="progressbar" style="width: 50%"></div>
                             </div>
                         </div>
-                        <div class="mb-2">
-                            <label>专注度: <span id="focus-level">0.0</span></label>
-                            <div class="progress">
-                                <div id="focus-level-bar" class="progress-bar bg-primary" role="progressbar" style="width: 50%"></div>
+                        <div class="mb-1">
+                            <small>错误率: <span id="typing-error-rate">0%</span></small>
+                            <div class="progress" style="height: 6px;">
+                                <div id="typing-error-bar" class="progress-bar bg-danger" role="progressbar" style="width: 50%"></div>
                             </div>
                         </div>
                         <div>
-                            <label>生产力评分: <span id="productivity-score">0.0</span></label>
-                            <div class="progress">
-                                <div id="productivity-score-bar" class="progress-bar bg-success" role="progressbar" style="width: 50%"></div>
+                            <small>退格率: <span id="backspace-rate">0%</span></small>
+                            <div class="progress" style="height: 6px;">
+                                <div id="backspace-rate-bar" class="progress-bar bg-warning" role="progressbar" style="width: 50%"></div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-2">
+                    <div class="card-header py-1 bg-success text-white">
+                        <i class="bi bi-speedometer2 me-1"></i>环境输入
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="mb-1">
+                            <small>亮度水平: <span id="brightness-value">0.0</span></small>
+                            <div class="progress" style="height: 6px;">
+                                <div id="brightness-bar" class="progress-bar bg-warning" role="progressbar" style="width: 50%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-1">
+                            <small>噪音水平: <span id="noise-value">0.0</span></small>
+                            <div class="progress" style="height: 6px;">
+                                <div id="noise-bar" class="progress-bar bg-danger" role="progressbar" style="width: 50%"></div>
+                            </div>
+                        </div>
+                        <div class="mb-1">
+                            <small>环境类型: <span id="environment-type">未知</span></small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-2">
+                    <div class="card-header py-1 bg-warning text-dark">
+                        <i class="bi bi-window me-1"></i>窗口活动
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="mb-1">
+                            <small>当前窗口: <span id="current-window" class="text-truncate">未知</span></small>
+                        </div>
+                        <div class="mb-1">
+                            <small>切换次数: <span id="window-switches">0</span></small>
+                            <div class="progress" style="height: 6px;">
+                                <div id="window-switches-bar" class="progress-bar bg-info" role="progressbar" style="width: 50%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <small>活跃时间: <span id="active-time">0</span> 分钟</small>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- 右侧面板：图表和详细数据 -->
+            <!-- 右侧面板：输出结果和分析 -->
             <div class="col-md-8">
-                <div class="card mb-3">
-                    <div class="card-header bg-dark text-white">
-                        <i class="bi bi-graph-up me-2"></i>情绪趋势
+                <!-- 情绪输出模块 -->
+                <div class="card mb-2">
+                    <div class="card-header py-1 bg-primary text-white">
+                        <i class="bi bi-person-circle me-1"></i>情绪状态分析
                     </div>
-                    <div class="card-body">
-                        <canvas id="emotion-chart" height="200"></canvas>
-                    </div>
-                </div>
-                
-                <div class="card mb-3">
-                    <div class="card-header bg-dark text-white">
-                        <i class="bi bi-graph-up me-2"></i>环境与生产力趋势
-                    </div>
-                    <div class="card-body">
-                        <canvas id="environment-chart" height="200"></canvas>
-                    </div>
-                </div>
-                
-                <div class="card mb-3">
-                    <div class="card-header bg-dark text-white">
-                        <i class="bi bi-camera-video me-2"></i>实时视觉
-                    </div>
-                    <div class="card-body text-center">
-                        <div id="video-container">
-                            <video id="video-stream" autoplay playsinline style="width: 100%; max-height: 300px; display: none;"></video>
-                            <canvas id="video-canvas" style="width: 100%; max-height: 300px; display: none;"></canvas>
-                            <div id="video-placeholder" class="placeholder">
-                                <i class="bi bi-camera-video-off"></i>
-                                <p>视频流暂不可用</p>
+                    <div class="card-body py-2">
+                        <div class="row g-1">
+                            <div class="col-md-3 text-center border-end">
+                                <div id="emotion-display" class="emotion-display">
+                                    <i class="bi bi-emoji-neutral emotion-icon"></i>
+                                </div>
+                                <h6 id="current-emotion" class="mt-1">中性</h6>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <small>综合评分:</small>
+                                    <span id="overall-emotion-score">65/100</span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-6">
-                                <div class="card h-100">
-                                    <div class="card-header bg-secondary text-white">人脸检测</div>
-                                    <div class="card-body">
-                                        <p>状态: <span id="face-detection-status">未检测</span></p>
+                            <div class="col-md-9">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <div class="mb-1">
+                                            <small>情绪价值: <span id="valence-value">0.0</span></small>
+                                            <div class="progress" style="height: 6px;">
+                                                <div id="valence-bar" class="progress-bar" role="progressbar" style="width: 50%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-1">
+                                            <small>唤醒度: <span id="arousal-value">0.0</span></small>
+                                            <div class="progress" style="height: 6px;">
+                                                <div id="arousal-bar" class="progress-bar bg-warning" role="progressbar" style="width: 50%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="mb-1">
+                                            <small>情绪强度: <span id="intensity-value">0.0</span></small>
+                                            <div class="progress" style="height: 6px;">
+                                                <div id="intensity-bar" class="progress-bar bg-danger" role="progressbar" style="width: 50%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span><small>面部情绪:</small></span>
+                                            <span id="face-emotion">中性</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span><small>语音情绪:</small></span>
+                                            <span id="voice-emotion">未检测</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span><small>行为情绪:</small></span>
+                                            <span id="behavior-emotion">中性</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span><small>综合情绪:</small></span>
+                                            <span id="overall-emotion">平静</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span><small>专注度:</small></span>
+                                            <span id="focus-level">0.0</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span><small>焦虑指数:</small></span>
+                                            <span id="anxiety-level">低</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span><small>疲劳度:</small></span>
+                                            <span id="fatigue-level">低</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span><small>情绪稳定性:</small></span>
+                                            <span id="emotion-stability">稳定</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <div class="card h-100">
-                                    <div class="card-header bg-secondary text-white">运动检测</div>
-                                    <div class="card-body">
-                                        <p>运动水平: <span id="motion-level">0.0</span></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 图表区域 - 两个图表并排 -->
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header py-1 bg-dark text-white">
+                                <i class="bi bi-graph-up me-1"></i>情绪趋势
+                            </div>
+                            <div class="card-body p-2">
+                                <canvas id="emotion-chart" height="180"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header py-1 bg-dark text-white">
+                                <i class="bi bi-graph-up me-1"></i>环境与生产力趋势
+                            </div>
+                            <div class="card-body p-2">
+                                <canvas id="environment-chart" height="180"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 其他模块化输出区域 -->
+                <div class="row g-2 mt-2">
+                    <!-- 环境状态模块 -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header py-1 bg-success text-white">
+                                <i class="bi bi-lightning me-1"></i>环境状态分析
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span><small>环境评分:</small></span>
+                                            <span class="badge bg-success px-2 py-1" id="environment-score">85/100</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>环境类型:</small></span>
+                                            <span id="environment-type-detail">办公环境</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>理想亮度差异:</small></span>
+                                            <span id="brightness-diff">12%</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span><small>噪音评估:</small></span>
+                                            <span id="noise-assessment">安静</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>环境适宜度:</small></span>
+                                            <span id="environment-suitability">适合工作</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>环境测量次数:</small></span>
+                                            <span id="environment-measure-count">153</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>环境变化率:</small></span>
+                                            <span id="environment-change-rate">低</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span><small>推荐操作:</small></span>
+                                            <span id="environment-recommendation">维持现状</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 生产力模块 -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header py-1 bg-info text-white">
+                                <i class="bi bi-bar-chart-line me-1"></i>生产力状态分析
+                            </div>
+                            <div class="card-body p-2">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span><small>生产力评分:</small></span>
+                                            <span class="badge bg-info px-2 py-1" id="productivity-score-badge">78/100</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>专注状态:</small></span>
+                                            <span id="focus-status">良好</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>平均打字速度:</small></span>
+                                            <span id="avg-typing-speed">320 CPM</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span><small>错误率:</small></span>
+                                            <span id="typing-error-detail">3.2%</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>活动时间:</small></span>
+                                            <span id="active-time-detail">45 分钟</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>窗口切换次数:</small></span>
+                                            <span id="window-switches-detail">12</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span><small>生产力趋势:</small></span>
+                                            <span id="productivity-trend">上升</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span><small>建议:</small></span>
+                                            <span id="productivity-suggestion">休息 5 分钟</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -183,17 +349,17 @@
         </div>
         
         <!-- 底部状态栏 -->
-        <footer class="footer mt-auto py-3 bg-light">
+        <footer class="footer mt-2 py-2 bg-light">
             <div class="container">
                 <div class="row">
                     <div class="col-md-4">
-                        <p>最后更新: <span id="last-update-time">-</span></p>
+                        <small>最后更新: <span id="last-update-time">-</span></small>
                     </div>
                     <div class="col-md-4 text-center">
-                        <p>MoodSense v1.0 | <span id="connection-status">已连接</span></p>
+                        <small>MoodSense v1.0 | <span id="connection-status">已连接</span></small>
                     </div>
                     <div class="col-md-4 text-end">
-                        <p>© 2025 MoodSense</p>
+                        <small> 2025 MoodSense</small>
                     </div>
                 </div>
             </div>
