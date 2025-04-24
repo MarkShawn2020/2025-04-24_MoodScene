@@ -387,7 +387,7 @@ function initVideoStream() {
     // 定时请求视频帧更新
     setInterval(function() {
         socket.emit('request_video_frame');
-    }, 200); // 每200毫秒请求一次
+    }, 500); 
 }
 
 // 更新视频帧

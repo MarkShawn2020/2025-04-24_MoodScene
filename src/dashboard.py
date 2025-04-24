@@ -153,7 +153,7 @@ class Dashboard:
         self.last_update = time.time()
         
         # 提取关键数据添加到历史记录
-        timestamp = datetime.now()
+        timestamp = time.time()
         
         # 情绪数据
         if 'emotion' in data:
@@ -195,7 +195,12 @@ class Dashboard:
         
         # 如果有视频帧数据，保存它
         if 'video' in data and 'frame_data' in data['video']:
+            logger.info(f"收到视频帧数据，长度: {len(data['video']['frame_data']) if data['video']['frame_data'] else 0}")
             self.last_video_frame = data['video']['frame_data']
+        # 检查数据中是否直接包含 frame_data
+        elif 'frame_data' in data:
+            logger.info(f"从根级别收到视频帧数据，长度: {len(data['frame_data']) if data['frame_data'] else 0}")
+            self.last_video_frame = data['frame_data']
         
         # 通过Socket.IO发送更新
         self._emit_update()

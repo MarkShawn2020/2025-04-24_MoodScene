@@ -1,0 +1,52 @@
+{
+    "video": {
+        "timestamp": 1745486236.758681,
+        "brightness": 0.0,
+        "motion_level": 0.0,
+        "face_detected": false
+    },
+    "audio": {
+        "volume": 0.0001290781212554065,
+        "is_speaking": false,
+        "pitch": 0.0,
+        "spectral_centroid": 0.0,
+        "noise_level": 0.0
+    },
+    "environment": {
+        "brightness": 0.0,
+        "noise_level": 0.0,
+        "motion_level": 0.0,
+        "room_activity": 0.0,
+        "time_of_day": "下午",
+        "environment_type": "安静环境",
+        "changes": {
+            "brightness": 0.0,
+            "noise_level": 0.0,
+            "motion_level": 0.0,
+            "room_activity": 0.0
+        },
+        "timestamp": "2025-04-24T17: 17: 16.758692"
+    },
+    "emotion": "neutral",
+    "input": {
+        "typing_speed": 204.50776541927712,
+        "typing_errors": 0.09803921568627451,
+        "backspace_rate": 0.09803921568627451,
+        "mouse_activity": 0.07876920606347178,
+        "click_frequency": 0.0,
+        "active_window": "<built-in method title of str object at 0x3571bc490>",
+        "window_switch_count": 50,
+        "screen_content_changes": 0.010662105119825708,
+        "focus_level": 0.6869369853634683,
+        "idle_time": 3.019078016281128
+    },
+    "brightness": 0.0,
+    "noise_level": 0.0,
+    "typing_speed": 204.50776541927712,
+    "focus_level": 0.6869369853634683,
+    "productivity_score": 0.690132053533602,
+    "wellbeing_score": 0.35655505553066524,
+    "mood_score": 0.18851685176888433,
+    "environment_score": 0.4,
+    "timestamp": "2025-04-24T17: 17: 16.759755"
+}

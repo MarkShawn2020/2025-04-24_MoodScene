@@ -124,8 +124,10 @@ class InputMonitor:
         # 获取当前活动窗口
         try:
             active_window = gw.getActiveWindow()
-            active_window_title = active_window.title if active_window else "未知"
-        except:
+            # 确保 active_window_title 是字符串，而不是方法对象
+            active_window_title = str(active_window.title) if active_window else "未知"
+        except Exception as e:
+            logger.error(f"获取活动窗口出错: {e}")
             active_window_title = "未知"
         
         return {
@@ -206,7 +208,18 @@ class InputMonitor:
         
         # 找出过去typing_window秒内的按键
         recent_times = [t for t in self.keystroke_times if current_time - t <= self.typing_window]
-        recent_chars = self.keystroke_chars[-len(recent_times):] if recent_times else []
+        
+        # 安全地获取相应数量的字符
+        try:
+            if recent_times:
+                # 确保不会取超过队列长度
+                char_count = min(len(recent_times), len(self.keystroke_chars))
+                recent_chars = list(self.keystroke_chars)[-char_count:] if char_count > 0 else []
+            else:
+                recent_chars = []        
+        except Exception as e:
+            logger.error(f"计算打字速度错误: {e}")
+            recent_chars = []
         
         if not recent_times:
             return 0.0

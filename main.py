@@ -13,7 +13,8 @@ import threading
 from dotenv import load_dotenv
 
 # 设置OpenCV摄像头权限环境变量
-os.environ['OPENCV_AVFOUNDATION_SKIP_AUTH'] = '1'
+# 设置为0允许显示授权请求提示
+os.environ['OPENCV_AVFOUNDATION_SKIP_AUTH'] = '0'
 
 # 导入核心模块
 from src.video_analyzer import VideoAnalyzer
@@ -155,7 +156,7 @@ class MoodSense:
                 logger.debug(f"调试: 视频帧存在状态: {has_frame}")
                 
                 # 等待一小段时间
-                time.sleep(0.1)  # 100ms更新一次
+                time.sleep(0.5)  # 100ms更新一次
                 
             except Exception as e:
                 logger.error(f"数据同步循环出错: {e}")
