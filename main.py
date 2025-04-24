@@ -156,7 +156,7 @@ class MoodSense:
                 logger.debug(f"调试: 视频帧存在状态: {has_frame}")
                 
                 # 等待一小段时间
-                time.sleep(0.5)  # 100ms更新一次
+                time.sleep(0.1)  # 100ms更新一次
                 
             except Exception as e:
                 logger.error(f"数据同步循环出错: {e}")

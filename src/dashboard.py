@@ -248,13 +248,12 @@ class Dashboard:
             # 直接从VideoAnalyzer获取最新的视频帧
             try:
                 # 获取最新的视频分析数据
-                from main import mood_sense
-                if not hasattr(mood_sense, 'video_analyzer'):
+                if not hasattr(self, 'video_analyzer'):
                     logger.error("视频分析器不可用")
-                    self.socketio.emit('no_server_video')
+                    # self.socketio.emit('no_server_video')
                     return
                     
-                video_data = mood_sense.video_analyzer.get_analysis_results()
+                video_data = self.video_analyzer.get_analysis_results()
                 
                 # 检查是否包含帧数据
                 if video_data and 'frame_data' in video_data:

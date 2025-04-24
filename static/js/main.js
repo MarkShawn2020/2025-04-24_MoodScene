@@ -464,7 +464,7 @@ function initVideoStream() {
     });
 
     // 启动视频帧请求
-    startRequestingVideoFrames(500);
+    startRequestingVideoFrames(100);
 }
 
 // 更新视频帧
