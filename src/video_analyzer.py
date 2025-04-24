@@ -68,15 +68,25 @@ class VideoAnalyzer:
         self.running = True
         
         # 初始化摄像头
-        self.cap = cv2.VideoCapture(self.camera_id)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
-        self.cap.set(cv2.CAP_PROP_FPS, self.fps)
-        
-        if not self.cap.isOpened():
-            self.running = False
-            logger.error("无法打开摄像头")
-            raise RuntimeError("无法打开摄像头")
+        try:
+            self.cap = cv2.VideoCapture(self.camera_id)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution[0])
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution[1])
+            self.cap.set(cv2.CAP_PROP_FPS, self.fps)
+            
+            # 检查摄像头是否成功打开
+            if not self.cap.isOpened():
+                logger.warning("无法打开摄像头，尝试打开虚拟摄像头")
+                # 创建虚拟视频源 - 一个黑色背景
+                self.using_virtual_camera = True
+                self.last_frame = np.zeros((self.resolution[1], self.resolution[0], 3), dtype=np.uint8)
+            else:
+                self.using_virtual_camera = False
+        except Exception as e:
+            logger.error(f"初始化摄像头时出错: {str(e)}")
+            # 创建虚拟视频源
+            self.using_virtual_camera = True
+            self.last_frame = np.zeros((self.resolution[1], self.resolution[0], 3), dtype=np.uint8)
         
         # 启动视频捕获线程
         self.capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
@@ -130,10 +140,36 @@ class VideoAnalyzer:
         start_time = time.time()
         
         while self.running:
-            ret, frame = self.cap.read()
+            if hasattr(self, 'using_virtual_camera') and self.using_virtual_camera:
+                # 模拟虚拟摄像头 - 创建动态内容
+                virtual_frame = np.zeros((self.resolution[1], self.resolution[0], 3), dtype=np.uint8)
+                
+                # 添加一些动态内容（比如移动的圆形）
+                current_time = time.time()
+                radius = 30
+                x = int(self.resolution[0]/2 + radius * np.sin(current_time))
+                y = int(self.resolution[1]/2 + radius * np.cos(current_time))
+                
+                # 绘制圆形
+                cv2.circle(virtual_frame, (x, y), 20, (0, 165, 255), -1)  # 橙色圆形
+                
+                # 添加文字
+                cv2.putText(virtual_frame, "Virtual Camera Mode", (10, 30), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.putText(virtual_frame, f"Time: {time.strftime('%H:%M:%S')}", (10, 60), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                
+                # 存储帧
+                self.last_frame = virtual_frame.copy()
+                frame = virtual_frame
+                ret = True
+            else:
+                # 正常摄像头模式
+                ret, frame = self.cap.read()
             
             if not ret:
-                logger.warning("无法从摄像头读取帧")
+                logger.warning("无法从摄像头读取帧，切换到虚拟摄像头模式")
+                self.using_virtual_camera = True
                 time.sleep(0.1)
                 continue
             

@@ -29,7 +29,7 @@ class Dashboard:
     使用Flask+SocketIO创建实时更新的仪表盘
     """
     
-    def __init__(self, host='0.0.0.0', port=5000, debug=False):
+    def __init__(self, host='0.0.0.0', port=8080, debug=False):
         """
         初始化仪表盘
         
@@ -44,10 +44,16 @@ class Dashboard:
         self.running = False
         
         # 创建Flask应用
+        # 使用基于文件当前位置的绝对路径
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        templates_path = os.path.join(project_root, 'templates')
+        static_path = os.path.join(project_root, 'static')
+        
         self.app = Flask(
             __name__, 
-            template_folder=os.path.abspath('../templates'),
-            static_folder=os.path.abspath('../static')
+            template_folder=templates_path,
+            static_folder=static_path
         )
         
         # 配置
@@ -84,9 +90,16 @@ class Dashboard:
         self.running = True
         
         # 确保模板和静态文件目录存在
-        os.makedirs('../templates', exist_ok=True)
-        os.makedirs('../static/css', exist_ok=True)
-        os.makedirs('../static/js', exist_ok=True)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        templates_path = os.path.join(project_root, 'templates')
+        static_path = os.path.join(project_root, 'static')
+        static_css_path = os.path.join(static_path, 'css')
+        static_js_path = os.path.join(static_path, 'js')
+        
+        os.makedirs(templates_path, exist_ok=True)
+        os.makedirs(static_css_path, exist_ok=True)
+        os.makedirs(static_js_path, exist_ok=True)
         
         # 创建基本模板和静态文件
         self._create_template_files()
@@ -106,7 +119,7 @@ class Dashboard:
                 'debug': self.debug,
                 'use_reloader': False
             },
-            daemon=True
+            daemon=False  # 不设置为守护线程，使服务器能继续运行
         )
         self.server_thread.start()
         
@@ -268,8 +281,10 @@ class Dashboard:
     
     def _create_template_files(self):
         """创建基本的HTML模板文件，如果不存在"""
-        # 模板目录
-        templates_dir = '../templates'
+        # 计算模板目录的绝对路径
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        templates_dir = os.path.join(project_root, 'templates')
         
         # 如果模板已存在，不需要创建
         if os.path.exists(os.path.join(templates_dir, 'index.html')):
@@ -281,9 +296,15 @@ class Dashboard:
     
     def _create_static_files(self):
         """创建基本的静态文件，如果不存在"""
+        # 计算静态文件目录的绝对路径
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        static_css_path = os.path.join(project_root, 'static', 'css')
+        static_js_path = os.path.join(project_root, 'static', 'js')
+        
         # 如果静态文件已存在，不需要创建
-        if os.path.exists(os.path.join('../static/css', 'style.css')) and \
-           os.path.exists(os.path.join('../static/js', 'main.js')):
+        if os.path.exists(os.path.join(static_css_path, 'style.css')) and \
+           os.path.exists(os.path.join(static_js_path, 'main.js')):
             return
         
         logger.info("创建静态文件...")

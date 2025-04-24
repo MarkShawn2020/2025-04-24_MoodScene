@@ -199,7 +199,7 @@ class InputMonitor:
     def _calculate_typing_speed(self):
         """计算打字速度"""
         if len(self.keystroke_times) < 2:
-            return 0.0
+            return 0.0, 0.0, 0.0  # 返回三元素元组：打字速度、错误率、退格率
         
         # 获取当前时间
         current_time = time.time()

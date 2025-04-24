@@ -12,6 +12,9 @@ import logging
 import threading
 from dotenv import load_dotenv
 
+# 设置OpenCV摄像头权限环境变量
+os.environ['OPENCV_AVFOUNDATION_SKIP_AUTH'] = '1'
+
 # 导入核心模块
 from src.video_analyzer import VideoAnalyzer
 from src.audio_analyzer import AudioAnalyzer
