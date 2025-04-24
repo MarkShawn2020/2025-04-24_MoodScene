@@ -1,0 +1,96 @@
+/* MoodSense 样式表 */
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #f5f5f5;
+}
+
+.container-fluid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.footer {
+    margin-top: auto;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e0e0e0;
+    padding: 10px 0;
+    color: #6c757d;
+}
+
+/* 情绪显示 */
+.emotion-display {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    border: 2px solid #ddd;
+}
+
+.emotion-icon {
+    font-size: 40px;
+    color: #343a40;
+}
+
+/* 进度条样式 */
+.progress {
+    height: 10px;
+    margin-bottom: 15px;
+}
+
+/* 视频容器 */
+#video-container {
+    width: 100%;
+    height: 240px;
+    background-color: #000;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #6c757d;
+}
+
+.placeholder i {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+
+/* 情绪颜色 */
+.emotion-happy { background-color: #ffc107; }
+.emotion-sad { background-color: #6c757d; }
+.emotion-angry { background-color: #dc3545; }
+.emotion-surprise { background-color: #17a2b8; }
+.emotion-fear { background-color: #6f42c1; }
+.emotion-disgust { background-color: #198754; }
+.emotion-neutral { background-color: #6c757d; }
+
+/* 响应式调整 */
+@media (max-width: 992px) {
+    .navbar-text {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    #video-container {
+        height: 180px;
+    }
+}
