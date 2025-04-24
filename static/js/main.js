@@ -387,36 +387,7 @@ function initVideoStream() {
     // 定时请求视频帧更新
     setInterval(function() {
         socket.emit('request_video_frame');
-    }, 200); // 每秒请求一次
-    
-    // 尝试从本地摄像头获取视频
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        // 仅在未收到服务器视频流时尝试
-        socket.on('no_server_video', function() {
-            console.log('尝试使用本地摄像头');
-            
-            // 首先尝试使用本地摄像头
-            navigator.mediaDevices.getUserMedia({ 
-                video: { 
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                } 
-            })
-            .then(function(stream) {
-                videoElement.srcObject = stream;
-                videoElement.style.display = 'block';
-                videoPlaceholder.style.display = 'none';
-                console.log('成功获取摄像头数据流');
-            })
-            .catch(function(error) {
-                console.error('无法访问摄像头:', error);
-
-            });
-        });
-    } else {
-        // 如果浏览器不支持摄像头API，直接显示静态演示图片
-        console.warn('浏览器不支持摄像头API');
-    }
+    }, 200); // 每200毫秒请求一次
 }
 
 // 更新视频帧
